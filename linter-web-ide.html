@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Linter Web IDE</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.27.0/min/vs/editor/editor.main.min.css">
+    <style>
+        body { font-family: Arial, sans-serif; }
+        #editor { width: 800px; height: 400px; border: 1px solid #ccc; }
+        #visualization { width: 800px; height: 400px; border: 1px solid #ccc; }
+        .container { display: flex; flex-direction: column; align-items: center; }
+        .dropdown { margin: 20px 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Interactive Linter Web IDE</h1>
+        <div class="dropdown">
+            <label for="exampleDropdown">Choose an example:</label>
+            <select id="exampleDropdown">
+                <option value="example1">Example 1</option>
+                <option value="example2">Example 2</option>
+                <option value="example3">Example 3</option>
+            </select>
+        </div>
+        <div id="editor"></div>
+        <button id="runButton">Run</button>
+        <div id="visualization"></div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.27.0/min/vs/loader.js"></script>
+    <script>
+        require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.27.0/min/vs' }});
+        require(['vs/editor/editor.main'], function() {
+            var editor = monaco.editor.create(document.getElementById('editor'), {
+                value: '',
+                language: 'javascript'
+            });
+        });
+
+        document.getElementById('runButton').addEventListener('click', function() {
+            var code = editor.getValue();
+            // Run your code here and visualize the results in visualization tab
+            document.getElementById('visualization').innerHTML = '<p>Running code: <pre>' + code + '</pre></p>';
+        });
+    </script>
+</body>
+</html>
