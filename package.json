@@ -1,0 +1,1 @@
+{"name": "onnx-linter-90210", "version": "1.0.0", "scripts": {"test": "jest", "lint": "eslint .", "prepare": "husky install"}, "devDependencies": {"typescript": "^4.5.4", "jest": "^27.0.0", "eslint": "^7.31.0", "husky": "^7.0.0", "lint-staged": "^11.2.0"}}
