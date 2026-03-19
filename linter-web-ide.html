@@ -6,43 +6,91 @@
     <title>Linter Web IDE</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.27.0/min/vs/editor/editor.main.min.css">
     <style>
-        body { font-family: Arial, sans-serif; }
-        #editor { width: 800px; height: 400px; border: 1px solid #ccc; }
-        #visualization { width: 800px; height: 400px; border: 1px solid #ccc; }
-        .container { display: flex; flex-direction: column; align-items: center; }
-        .dropdown { margin: 20px 0; }
+        body { font-family: Arial, sans-serif; background-color: #f5f5f5; color: #333; margin: 0; padding: 20px; }
+        .container { max-width: 1000px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
+        .header { text-align: center; }
+        #editor { width: 100%; height: 400px; border: 1px solid #ccc; background: white; }
+        #visualization { width: 100%; min-height: 200px; border: 1px solid #ccc; background: #1e1e1e; color: #d4d4d4; padding: 15px; box-sizing: border-box; font-family: monospace; white-space: pre-wrap; overflow-y: auto; }
+        .controls { display: flex; justify-content: space-between; align-items: center; }
+        button { padding: 10px 20px; background-color: #007acc; color: white; border: none; cursor: pointer; font-size: 16px; border-radius: 4px; }
+        button:hover { background-color: #005f9e; }
+        .status-valid { color: #4CAF50; font-weight: bold; }
+        .status-invalid { color: #f44336; font-weight: bold; }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Interactive Linter Web IDE</h1>
-        <div class="dropdown">
-            <label for="exampleDropdown">Choose an example:</label>
-            <select id="exampleDropdown">
-                <option value="example1">Example 1</option>
-                <option value="example2">Example 2</option>
-                <option value="example3">Example 3</option>
-            </select>
+        <div class="header">
+            <h1>ONNX Linter 90210 - Web IDE</h1>
+            <p>Write or paste your JSON-based ONNX Model Proto below to lint it.</p>
         </div>
+        
+        <div class="controls">
+            <div class="dropdown">
+                <label for="exampleDropdown">Choose an example:</label>
+                <select id="exampleDropdown">
+                    <option value="empty">Empty Model</option>
+                    <option value="valid">Valid Quantized Conv Model</option>
+                    <option value="invalid">Invalid Model (Cycle & Missing Inputs)</option>
+                </select>
+            </div>
+            <button id="runButton">Run Linter</button>
+        </div>
+
         <div id="editor"></div>
-        <button id="runButton">Run</button>
-        <div id="visualization"></div>
+        
+        <h2>Lint Report</h2>
+        <div id="visualization">Run the linter to see results...</div>
     </div>
 
+    <!-- Load our local ESBuild bundled ONNX Linter -->
+    <script src="dist/browser.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.27.0/min/vs/loader.js"></script>
+    
     <script>
+        const examples = {
+            empty: '{\n  "irVersion": 8,\n  "graph": {\n    "name": "empty_graph",\n    "node": [],\n    "initializer": [],\n    "input": [],\n    "output": []\n  }\n}',
+            valid: '{\n  "irVersion": 8,\n  "graph": {\n    "name": "quantized_conv",\n    "input": [{ "name": "in", "type": { "tensorType": { "elemType": 2 } } }],\n    "output": [{ "name": "out", "type": { "tensorType": { "elemType": 2 } } }],\n    "initializer": [{ "name": "w", "dataType": 3, "dims": [1, 1, 3, 3] }],\n    "node": [\n      {\n        "name": "conv1",\n        "opType": "Conv",\n        "input": ["in", "w"],\n        "output": ["out"],\n        "attribute": [{ "name": "kernel_shape", "type": "INTS" }]\n      }\n    ]\n  }\n}',
+            invalid: '{\n  "irVersion": 8,\n  "graph": {\n    "name": "broken_graph",\n    "input": [],\n    "output": [],\n    "initializer": [],\n    "node": [\n      { "name": "n1", "opType": "Relu", "input": ["missing_input"], "output": ["A"] },\n      { "name": "n2", "opType": "Relu", "input": ["A"], "output": ["B"] },\n      { "name": "n3", "opType": "Relu", "input": ["B"], "output": ["A"] }\n    ]\n  }\n}'
+        };
+
         require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.27.0/min/vs' }});
         require(['vs/editor/editor.main'], function() {
-            var editor = monaco.editor.create(document.getElementById('editor'), {
-                value: '',
-                language: 'javascript'
+            window.editor = monaco.editor.create(document.getElementById('editor'), {
+                value: examples.empty,
+                language: 'json',
+                theme: 'vs-light',
+                automaticLayout: true
+            });
+
+            document.getElementById('exampleDropdown').addEventListener('change', function(e) {
+                window.editor.setValue(examples[e.target.value] || '');
             });
         });
 
         document.getElementById('runButton').addEventListener('click', function() {
-            var code = editor.getValue();
-            // Run your code here and visualize the results in visualization tab
-            document.getElementById('visualization').innerHTML = '<p>Running code: <pre>' + code + '</pre></p>';
+            var code = window.editor.getValue();
+            var vis = document.getElementById('visualization');
+            
+            try {
+                // Instantiating our linter that is bundled globally as `OnnxLinter`
+                const linter = new OnnxLinter.Linter();
+                const formatter = new OnnxLinter.ReportFormatter();
+                
+                // Hardware constraints (Quantization required, memory limit)
+                const constraints = {
+                    requireQuantization: true,
+                    maxMemoryBytes: 1048576, // 1MB
+                    supportedOps: ["Conv", "Relu", "Add"]
+                };
+
+                const report = linter.lint(code, constraints);
+                const textReport = formatter.formatText(report);
+                
+                vis.innerHTML = `<span class="${report.valid ? 'status-valid' : 'status-invalid'}">${report.valid ? 'PASSED' : 'FAILED'}</span>\n\n${textReport}`;
+            } catch (err) {
+                vis.innerHTML = `<span class="status-invalid">Execution Error:</span>\n${err.message}`;
+            }
         });
     </script>
 </body>

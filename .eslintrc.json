@@ -1,1 +1,55 @@
-{"extends": "@typescript-eslint/recommended", "rules": {"@typescript-eslint/explicit-function-return-type": "warn", "@typescript-eslint/no-unused-vars": ["error", {"argsIgnorePattern": "^_"}], "@typescript-eslint/no-explicit-any": "error", "@typescript-eslint/consistent-type-definitions": ["error", "interface"], "@typescript-eslint/prefer-optional-chain": "warn"}}
+{
+  "env": {
+    "node": true,
+    "es2022": true
+  },
+  "parser": "@typescript-eslint/parser",
+  "parserOptions": {
+    "project": "./tsconfig.json"
+  },
+  "plugins": ["@typescript-eslint", "jsdoc"],
+  "extends": [
+    "eslint:recommended",
+    "plugin:@typescript-eslint/strict",
+    "plugin:jsdoc/recommended-typescript-error"
+  ],
+  "rules": {
+    "@typescript-eslint/no-explicit-any": "error",
+    "@typescript-eslint/no-unused-vars": ["error", { "argsIgnorePattern": "^_" }],
+    "@typescript-eslint/explicit-function-return-type": "error",
+    "@typescript-eslint/no-non-null-assertion": "error",
+    "jsdoc/require-jsdoc": ["error", {
+      "require": {
+        "FunctionDeclaration": true,
+        "MethodDefinition": true,
+        "ClassDeclaration": true,
+        "ArrowFunctionExpression": true,
+        "FunctionExpression": true
+      }
+    }],
+    "jsdoc/require-description": "error",
+    "jsdoc/require-param": "error",
+    "jsdoc/require-param-type": "off",
+    "jsdoc/require-returns": "error",
+    "jsdoc/require-returns-type": "off",
+    "no-restricted-syntax": [
+      "error",
+      {
+        "selector": "Identifier[name='any']",
+        "message": "The use of 'any' is strictly forbidden."
+      },
+      {
+        "selector": "Identifier[name='never']",
+        "message": "The use of 'never' is strictly forbidden."
+      }
+    ]
+  },
+  "overrides": [
+    {
+      "files": ["*.test.ts", "src/bin/onnx-linter.ts"],
+      "rules": {
+        "@typescript-eslint/no-non-null-assertion": "off"
+      }
+    }
+  ]
+}
